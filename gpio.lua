@@ -40,31 +40,31 @@ for i=2,27 do
   end
 end
 
-onEvent("*","gpio_in",function(msg) 
+on("*","gpio_is_in",function(msg) 
     log(msg.from.." gpio"..msg.payload.." direction IN")
 end)
 
-onEvent("*","gpio_out",function(msg) 
+on("*","gpio_is_out",function(msg) 
     log(msg.from.." gpio"..msg.payload.." direction IN")
 end)
 
-onEvent("*","gpio_high",function(msg) 
+on("*","gpio_is_high",function(msg) 
     log(msg.from.." gpio"..msg.payload.." value HIGH")
 end)
 
-onEvent("*","gpio_low",function(msg) 
+on("*","gpio_is_low",function(msg) 
     log(msg.from.." gpio"..msg.payload.." value LOW")
 end)
 
-onCommand("*","gpio_low",function(msg)
+on("*","set_gpio_low",function(msg)
   i = msg.payload
-      local direction_file=sysfs.."/gpio"..i.."/direction"
-      writef(direction_file,"out")
-      local value_file=sysfs.."/gpio"..i.."/value"
-      writef(value_file,"0")
+  local direction_file=sysfs.."/gpio"..i.."/direction"
+  writef(direction_file,"out")
+  local value_file=sysfs.."/gpio"..i.."/value"
+  writef(value_file,"0")
 end)
 
-onCommand("*","gpio_high",function(msg)
+on("*","set_gpio_high",function(msg)
   i = msg.payload
   local direction_file=sysfs.."/gpio"..i.."/direction"
   writef(direction_file,"out")
@@ -72,44 +72,46 @@ onCommand("*","gpio_high",function(msg)
   writef(value_file,"1")
 end)
 
-onCommand("*","gpio_in",function(msg)
+on("*","set_gpio_in",function(msg)
   i = msg.payload
   local direction_file=sysfs.."/gpio"..i.."/direction"
   writef(direction_file,"in")
 end)
 
-onCommand("*","gpio_out",function(msg)
+on("*","set_gpio_out",function(msg)
   i = msg.payload
   local direction_file=sysfs.."/gpio"..i.."/direction"
   writef(direction_file,"out")
 end)
 
 tick(1,function()
-    for i=2,27 do
-      local direction_file=sysfs.."/gpio"..i.."/direction"
-      local direction=readf(direction_file)
-      local direction_key=self().."/gpio"..i.."/direction"
-      if kv[direction_key] ~= direction then
-        kv[direction_key]=direction
-        sendEvent("gpio_"..direction,i)
-        sendEvent("gpio_"..i.."_direction",direction)
-      end
-      local value_file=sysfs.."/gpio"..i.."/value"
-      local value_n=readf(value_file)
+  for i=2,27 do
+    local direction_file=sysfs.."/gpio"..i.."/direction"
+    local direction=readf(direction_file)
+    local direction_key=self().."/gpio"..i.."/direction"
 
-	local value="high"
-	if value_n == "1" then
-		value="high"
-	else
-		value="low"
-	end
-      local value_key=self().."/gpio"..i.."/value"
-      if kv[value_key] ~= value then
-        kv[value_key]=value
-        sendEvent("gpio_"..i.."_value",value)
-        sendEvent("gpio_"..value,i)
-      end
+    if kv[direction_key] ~= direction then
+      kv[direction_key]=direction
+      send("gpio_is_"..direction,i)
+      send("gpio_"..i.."_direction_is",direction)
     end
-    return true
+
+    local value_file=sysfs.."/gpio"..i.."/value"
+    local value_n=readf(value_file)
+
+    local value="high"
+    if value_n == "1" then
+      value="high"
+    else
+      value="low"
+    end
+    local value_key=self().."/gpio"..i.."/value"
+    if kv[value_key] ~= value then
+      kv[value_key]=value
+      send("gpio_"..i.."_value_is",value)
+      sendEvent("gpio_is_"..value,i)
+    end
+  end
+  return true
 end)
 
